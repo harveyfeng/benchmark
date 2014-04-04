@@ -168,34 +168,34 @@ def prepare_shark_dataset(opts):
   if not opts.skip_s3_import:  
     print "=== IMPORTING BENCHMARK DATA FROM S3 ==="
     try:
-      ssh_shark("/root/ephemeral-hdfs/bin/hdfs dfs -mkdir /user/shark/benchmark")
+      ssh_shark("/root/ephemeral-hdfs/bin/hadoop dfs -mkdir /user/shark/benchmark")
     except Exception:
       pass # Folder may already exist
 
     add_aws_credentials(opts.shark_host, "root", opts.shark_identity_file,
-        "/root/mapreduce/conf/core-site.xml", opts.aws_key_id, opts.aws_key)
+        "/root/ephemeral-hdfs/conf/core-site.xml", opts.aws_key_id, opts.aws_key)
 
-    ssh_shark("/root/mapreduce/bin/start-mapred.sh")
+    ssh_shark("/root/ephemeral-hdfs/bin/start-mapred.sh")
     
     ssh_shark( 
-      "/root/mapreduce/bin/hadoop distcp " \
+      "/root/ephemeral-hdfs/bin/hadoop distcp " \
       "s3n://big-data-benchmark/pavlo/%s/%s/rankings/ " \
       "/user/shark/benchmark/rankings/" % (opts.file_format, opts.data_prefix))
 
     ssh_shark( 
-      "/root/mapreduce/bin/hadoop distcp " \
+      "/root/ephemeral-hdfs/bin/hadoop distcp " \
       "s3n://big-data-benchmark/pavlo/%s/%s/uservisits/ " \
       "/user/shark/benchmark/uservisits/" % (
         opts.file_format, opts.data_prefix))
     
     ssh_shark( 
-      "/root/mapreduce/bin/hadoop distcp " \
+      "/root/ephemeral-hdfs/bin/hadoop distcp " \
       "s3n://big-data-benchmark/pavlo/%s/%s/crawl/ " \
       "/user/shark/benchmark/crawl/" % (opts.file_format, opts.data_prefix))
 
     # Scratch table used for JVM warmup
     ssh_shark(
-      "/root/mapreduce/bin/hadoop distcp /user/shark/benchmark/rankings " \
+      "/root/ephemeral-hdfs/bin/hadoop distcp /user/shark/benchmark/rankings " \
       "/user/shark/benchmark/scratch"
     )
 
@@ -228,8 +228,9 @@ def prepare_shark_dataset(opts):
   ssh_shark("/root/spark-ec2/copy-dir /root/url_count.py")
 
   ssh_shark("""
+            rm -rf shark-back;
             mv shark shark-back;
-            git clone https://github.com/ahirreddy/shark.git -b branch-0.8;
+            git clone git://github.com/amplab/shark.git -b branch-0.9 shark;
             cp shark-back/conf/shark-env.sh shark/conf/shark-env.sh;
             cd shark;
             sbt/sbt assembly;
